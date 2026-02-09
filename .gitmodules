@@ -1,0 +1,12 @@
+[submodule "backend"]
+	path = backend
+	url = https://github.com/Abdlehakim/projectbt-backend.git
+[submodule "frontendclient"]
+	path = frontendclient
+	url = https://github.com/Abdlehakim/projectbt-frontend.git
+[submodule "backendbt"]
+	path = backendbt
+	url = https://github.com/Abdlehakim/backendbt.git
+[submodule "frontendclientbt"]
+	path = frontendclientbt
+	url = https://github.com/Abdlehakim/frontendclientbt.git
