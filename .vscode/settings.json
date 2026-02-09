@@ -9,12 +9,12 @@
     "Git Bash (Backend)": {
       "path": "C:\\Program Files\\Git\\bin\\bash.exe",
       "args": ["-i"],
-      "cwd": "${workspaceFolder}/backend"
+      "cwd": "${workspaceFolder}/backendbt"
     },
     "Git Bash (Frontend)": {
       "path": "C:\\Program Files\\Git\\bin\\bash.exe",
       "args": ["-i"],
-      "cwd": "${workspaceFolder}/frontendclient"
+      "cwd": "${workspaceFolder}/frontendclientbt"
     }
   }
 }
