@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_pass
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - projectbt_db:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backendbt
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+
+volumes:
+  projectbt_db:

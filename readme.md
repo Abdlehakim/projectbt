@@ -75,7 +75,7 @@ cd backend
 git checkout main
 git pull
 cd ..
-git add backend
+git add backendbt
 git commit -m "Update backend submodule"
 git push
 
@@ -84,7 +84,7 @@ cd frontendclient
 git checkout main
 git pull
 cd ..
-git add frontendclient
+git add frontendclientbt
 git commit -m "Update frontend submodule"
 git push
 
