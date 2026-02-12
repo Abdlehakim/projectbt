@@ -90,7 +90,7 @@ git push
 
 Update both at once:
 git submodule update --remote --merge
-git add backend frontendclient
+git add backendbt frontendclientbt
 git commit -m "Update submodules"
 git push
 
