@@ -103,3 +103,12 @@ Common problems:
 If you see "cloned an empty repository", the GitHub repo has no commits yet, do STEP 3 and push
 If submodule folders are empty, run: git submodule update --init --recursive
 If parent repo shows changes after updating submodules, commit the new submodule pointers and push
+
+
+
+find . \
+  \( -name ".git" -o -name "node_modules" -o -name "dist" -o -name "build" -o -name ".next" -o -name ".cache" -o -name ".vite" \) -prune \
+  -o -print | sed -e 's;[^/]*/;|  ;g;s;|  \([^|]\);|-- \1;'
+
+
+bash scripts/prisma-regen.sh

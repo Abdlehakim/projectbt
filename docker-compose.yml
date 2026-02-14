@@ -24,6 +24,7 @@ services:
       - db
     volumes:
       - ./backendbt/prisma:/app/prisma
+      - ./backendbt/prisma.config.ts:/app/prisma.config.ts
 
 volumes:
   projectbt_db:
