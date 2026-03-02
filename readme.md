@@ -1,114 +1,121 @@
-# projectbt - Git Submodules (from zero)
+# PROJECTBT
 
-This repo is a parent project that contains two Git submodules:
-backend/ -> backendbt
-frontendclient/ -> frontendclientbt
+This repository contains two projects:
+- `backendbt` (Node.js/TypeScript backend, Prisma, Docker setup)
+- `frontendclientbt` (frontend client)
 
-Links:
-backendbt: [https://github.com/Abdlehakim/backendbt.git](https://github.com/Abdlehakim/backendbt.git)
-frontendclientbt: [https://github.com/Abdlehakim/frontendclientbt.git](https://github.com/Abdlehakim/frontendclientbt.git)
-projectbt (parent): [https://github.com/Abdlehakim/projectbt.git](https://github.com/Abdlehakim/projectbt.git)
+The backend is now self-contained: runtime config, scripts, and Docker files live under `backendbt/`.
 
-Final structure:
-projectbt/
-  backend/
-  frontendclient/
-  .gitmodules
-  README.md
+## Repository Structure
 
-Requirements:
-Create these 3 empty repos on GitHub first: projectbt, backendbt, frontendclientbt
-Run commands in Git Bash or PowerShell
-Change paths if your folders are not under ~/Desktop/projectbt
+```text
+PROJECTBT/
+  backendbt/
+    src/
+    prisma/
+    scripts/
+      prisma-regen.js
+      prisma-regen.sh
+    docker/
+      docker-compose.yml
+    .env
+    Dockerfile
+    package.json
+    package-lock.json
+    tsconfig.json
+    prisma.config.ts
+    .dockerignore
+    .gitignore
+  frontendclientbt/
+  readme.md
+```
 
-STEP 1 - Create the BACKEND repo and push it
+## Backend Environment
 
-cd ~/Desktop/projectbt/backend
-git init
-git branch -M main
-git add .
-git commit -m "Initial commit (backend)"
-git remote add origin [https://github.com/Abdlehakim/backendbt.git](https://github.com/Abdlehakim/backendbt.git)
-git push -u origin main
+Backend environment variables are expected in:
+- `backendbt/.env`
+- Start from `backendbt/.env.example`
 
-STEP 2 - Create the FRONTEND repo and push it
+No backend `.env` is required at repository root.
 
-cd ~/Desktop/projectbt/frontendclient
-git init
-git branch -M main
-git add .
-git commit -m "Initial commit (frontend)"
-git remote add origin [https://github.com/Abdlehakim/frontendclientbt.git](https://github.com/Abdlehakim/frontendclientbt.git)
-git push -u origin main
+## Run Backend with Docker
 
-STEP 3 - Create the PARENT repo and add submodules
+Recommended workflow:
 
-cd ~/Desktop
-mkdir projectbt-parent
-cd projectbt-parent
+```bash
+cd backendbt/docker
+docker compose up --build
+```
 
-git init
-git branch -M main
-git remote add origin [https://github.com/Abdlehakim/projectbt.git](https://github.com/Abdlehakim/projectbt.git)
+Database port mapping uses `3307` by default to avoid conflicts with local MySQL.
+To override it, set `DB_HOST_PORT` before running compose.
 
-git submodule add [https://github.com/Abdlehakim/backendbt.git](https://github.com/Abdlehakim/backendbt.git) backend
-git submodule add [https://github.com/Abdlehakim/frontendclientbt.git](https://github.com/Abdlehakim/frontendclientbt.git) frontendclient
+Stop containers:
 
-echo "projectbt parent repo (with submodules)" > README.md
+```bash
+cd backendbt/docker
+docker compose down
+```
 
-git add .
-git commit -m "Add backend and frontendclient as submodules"
-git push -u origin main
+Alternative from backend root:
 
-STEP 4 - Clone the parent repo with submodules (on any PC)
+```bash
+cd backendbt
+npm run docker:up
+npm run docker:down
+```
 
-git clone --recurse-submodules [https://github.com/Abdlehakim/projectbt.git](https://github.com/Abdlehakim/projectbt.git)
-cd projectbt
+## Run Backend Scripts
 
-If you already cloned without submodules:
-git submodule update --init --recursive
+Prisma helper script is now inside the backend:
 
-STEP 5 - Daily workflow (update submodules)
+```bash
+cd backendbt
+npm run prisma:regen
+```
 
-Update backend:
-cd backend
-git checkout main
-git pull
-cd ..
-git add backendbt
-git commit -m "Update backend submodule"
-git push
+Supported modes:
 
-Update frontend:
-cd frontendclient
-git checkout main
-git pull
-cd ..
-git add frontendclientbt
-git commit -m "Update frontend submodule"
-git push
+```bash
+cd backendbt
+MODE=push npm run prisma:regen
+MODE=deploy npm run prisma:regen
+MODE=reset npm run prisma:regen
+```
 
-Update both at once:
-git submodule update --remote --merge
-git add backendbt frontendclientbt
-git commit -m "Update submodules"
-git push
+Mode intent:
+- `push`: dev/local schema sync (non-destructive to existing tables).
+- `reset`: dev/local full reset (destructive).
+- `deploy`: production-like migration apply only (expects Prisma migration history already tracked for that DB).
 
-Useful commands:
-git submodule status
-git submodule update --init --recursive
-git config --global submodule.recurse true
+You can also pass mode as the first argument:
 
-Common problems:
-If you see "cloned an empty repository", the GitHub repo has no commits yet, do STEP 3 and push
-If submodule folders are empty, run: git submodule update --init --recursive
-If parent repo shows changes after updating submodules, commit the new submodule pointers and push
+```bash
+cd backendbt
+node scripts/prisma-regen.js deploy
+```
 
+`scripts/prisma-regen.sh` is still available for Bash users.
 
+## Backend Development (without Docker)
 
-find . \
-  \( -name ".git" -o -name "node_modules" -o -name "dist" -o -name "build" -o -name ".next" -o -name ".cache" -o -name ".vite" \) -prune \
-  -o -print | sed -e 's;[^/]*/;|  ;g;s;|  \([^|]\);|-- \1;'
+```bash
+cd backendbt
+npm install
+npm run dev
+```
 
+## Frontend
 
-bash scripts/prisma-regen.sh
+Frontend remains unchanged and lives in `frontendclientbt/`.
+Use its existing workflow from that directory.
+
+## Migration Notes
+
+Moved from repository root into `backendbt`:
+- `scripts/` -> `backendbt/scripts/`
+- `.env` -> `backendbt/.env`
+- `docker-compose.yml` -> `backendbt/docker/docker-compose.yml`
+
+If you had old shell aliases or CI steps pointing to root-level paths, update them to the new backend paths.
+doker cpmopos
