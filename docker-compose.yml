@@ -1,0 +1,46 @@
+name: projectbt
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - projectbt_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backendbt
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    expose:
+      - "4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy --schema prisma/schema && node dist/server.js"
+
+  frontend:
+    build:
+      context: ./frontendclientbt
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3001}:80"
+    depends_on:
+      - backend
+
+volumes:
+  projectbt_mysql_data:
