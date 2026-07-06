@@ -30,7 +30,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npx prisma migrate deploy --schema prisma/schema && node dist/server.js"
+    command: sh -c "npx prisma migrate deploy --schema prisma/schema && node scripts/ensure-catalog.js && node dist/server.js"
 
   frontend:
     build:
