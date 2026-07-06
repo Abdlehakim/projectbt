@@ -28,13 +28,65 @@ jobs:
 
             cd /opt/apps/projectbt
 
-            git fetch origin main
+            git fetch --prune origin
             git reset --hard origin/main
 
             git submodule sync --recursive
             git submodule update --init --recursive
 
-            docker compose up -d --build
+            echo "Current submodule status:"
+            git submodule status
+
+            echo "Available backend migrations:"
+            ls -la backendbt/prisma/migrations
+
+            echo "Starting database..."
+            docker compose up -d db
+
+            echo "Waiting for database health..."
+            for i in $(seq 1 60); do
+              STATUS="$(docker inspect -f '{{.State.Health.Status}}' projectbt-db-1 2>/dev/null || true)"
+              if [ "$STATUS" = "healthy" ]; then
+                echo "Database is healthy"
+                break
+              fi
+              echo "Waiting for database... status=$STATUS"
+              sleep 2
+            done
+
+            STATUS="$(docker inspect -f '{{.State.Health.Status}}' projectbt-db-1 2>/dev/null || true)"
+            if [ "$STATUS" != "healthy" ]; then
+              echo "Database is not healthy after waiting"
+              docker compose logs db --tail=80
+              exit 1
+            fi
+
+            # Create a MySQL backup before applying production migrations.
+            echo "Creating database backup before migration..."
+            mkdir -p backups/mysql
+            BACKUP_FILE="backups/mysql/projectbt_$(date +%Y%m%d_%H%M%S)_before_deploy.sql"
+
+            docker compose exec -T db sh -lc 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" "${MYSQL_DATABASE:-projectbt}"' > "$BACKUP_FILE"
+
+            if [ ! -s "$BACKUP_FILE" ]; then
+              echo "Database backup failed or backup file is empty"
+              exit 1
+            fi
+
+            echo "Database backup created: $BACKUP_FILE"
+
+            echo "Building backend image..."
+            docker compose build backend
+
+            # Use Prisma migrate deploy for production; set -e stops deployment if it fails.
+            echo "Applying Prisma migrations..."
+            docker compose run --rm backend npx prisma migrate deploy --schema prisma/schema
+
+            echo "Building frontend image..."
+            docker compose build frontend
+
+            echo "Starting application services..."
+            docker compose up -d backend frontend
 
             docker image prune -f
 
