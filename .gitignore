@@ -1,18 +1,32 @@
 .env
 .env.*
-!.env.production.example
+!.env.example
 
 node_modules/
 dist/
 build/
 coverage/
+.cache/
+.vite/
+tmp/
+temp/
+backups/
 
 *.log
 npm-debug.log*
+prisma-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+*.tsbuildinfo
+*.cookies.txt
+*.cookie.txt
+*.dump
+*.sql.gz
 
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/git-commit-all.ps1

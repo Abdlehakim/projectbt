@@ -2,22 +2,26 @@ name: projectbt
 
 services:
   db:
-    image: mysql:8.4
+    image: postgres:17-alpine
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - projectbt_mysql_data:/var/lib/mysql
+      - projectbt_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 20s
+      start_period: 10s
 
   backend:
     build:
-      context: ./backendbt
+      context: ./services/api
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
@@ -30,11 +34,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm run prisma:deploy && node scripts/ensure-catalog.js && node dist/server.js"
 
   frontend:
     build:
-      context: ./frontendclientbt
+      context: ./apps/customer
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
@@ -43,4 +46,4 @@ services:
       - backend
 
 volumes:
-  projectbt_mysql_data:
+  projectbt_postgres_data:

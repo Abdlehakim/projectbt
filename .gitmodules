@@ -1,6 +1,8 @@
-[submodule "backendbt"]
-	path = backendbt
-	url = https://github.com/Abdlehakim/backendbt.git
-[submodule "frontendclientbt"]
-	path = frontendclientbt
+[submodule "apps/customer"]
+	path = apps/customer
 	url = https://github.com/Abdlehakim/frontendclientbt.git
+	branch = main
+[submodule "services/api"]
+	path = services/api
+	url = https://github.com/Abdlehakim/backendbt.git
+	branch = main
