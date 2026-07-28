@@ -24,16 +24,25 @@
       }
     },
     {
-      "label": "Run Customer Dashboard",
+      "label": "Docker: Start Dev Services",
       "type": "shell",
-      "command": "npm run dev",
-      "isBackground": true,
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "compose.local.yaml",
+        "up",
+        "-d",
+        "db"
+      ],
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/apps/customer"
+        "cwd": "${workspaceFolder}"
       },
       "presentation": {
-        "group": "facturance-customer",
+        "group": "projectbt-database",
         "panel": "dedicated",
         "reveal": "always",
         "focus": false,
@@ -41,16 +50,71 @@
       }
     },
     {
-      "label": "Run Admin Dashboard",
+      "label": "Docker: Stop Dev Services",
       "type": "shell",
-      "command": "npm run dev",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "compose.local.yaml",
+        "stop",
+        "db"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "group": "projectbt-database",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Docker: Local MySQL Status",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "docker-compose.yml",
+        "-f",
+        "compose.local.yaml",
+        "ps",
+        "db"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "group": "projectbt-database",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Run Customer Dashboard",
+      "detail": "Runs the ProjectBT frontend",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
       "isBackground": true,
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/apps/admin"
+        "cwd": "${workspaceFolder}/frontendclientbt"
       },
       "presentation": {
-        "group": "facturance-admin",
+        "group": "projectbt-frontend",
         "panel": "dedicated",
         "reveal": "always",
         "focus": false,
@@ -59,15 +123,20 @@
     },
     {
       "label": "Run API",
+      "detail": "Runs the ProjectBT backend API",
       "type": "shell",
-      "command": "npm run start:dev",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
       "isBackground": true,
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/services/api"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
-        "group": "facturance-api",
+        "group": "projectbt-backend",
         "panel": "dedicated",
         "reveal": "always",
         "focus": false,
@@ -75,16 +144,22 @@
       }
     },
     {
-      "label": "Run Desktop",
+      "label": "Run Admin Dashboard",
+      "detail": "Opens Prisma Studio as the local database administration interface",
       "type": "shell",
-      "command": "npm start",
+      "command": "npx",
+      "args": [
+        "prisma",
+        "studio",
+        "--config=./prisma.config.ts"
+      ],
       "isBackground": true,
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/apps/desktop"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
-        "group": "facturance-desktop",
+        "group": "projectbt-prisma",
         "panel": "dedicated",
         "reveal": "always",
         "focus": false,
@@ -92,13 +167,11 @@
       }
     },
     {
-      "label": "Dev: Run Customer + Admin + API + Desktop",
+      "label": "Dev: Run Backend + Frontend",
       "dependsOrder": "parallel",
       "dependsOn": [
-        "Run Customer Dashboard",
-        "Run Admin Dashboard",
         "Run API",
-        "Run Desktop"
+        "Run Customer Dashboard"
       ],
       "problemMatcher": [],
       "presentation": {
@@ -107,44 +180,19 @@
       }
     },
     {
-      "label": "Docker: Start Dev Services",
-      "type": "shell",
-      "command": "docker compose -f infrastructure/docker/dev/docker-compose.dev.yml up -d",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "focus": true,
-        "clear": true
-      }
-    },
-    {
-      "label": "Docker: Stop Dev Services",
-      "type": "shell",
-      "command": "docker compose -f infrastructure/docker/dev/docker-compose.dev.yml down",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "always",
-        "focus": true,
-        "clear": true
-      }
-    },
-    {
       "label": "Prisma: Migrate API",
       "type": "shell",
-      "command": "npx prisma migrate dev",
+      "command": "npm",
+      "args": [
+        "run",
+        "prisma:deploy"
+      ],
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/services/api"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
+        "group": "projectbt-prisma",
         "panel": "dedicated",
         "reveal": "always",
         "focus": true,
@@ -154,12 +202,41 @@
     {
       "label": "Prisma: Generate API Client",
       "type": "shell",
-      "command": "npx prisma generate",
+      "command": "npx",
+      "args": [
+        "prisma",
+        "generate",
+        "--schema",
+        "prisma/schema"
+      ],
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/services/api"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
+        "group": "projectbt-prisma",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma: Migration Status",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "prisma",
+        "migrate",
+        "status",
+        "--config=./prisma.config.ts"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/backendbt"
+      },
+      "presentation": {
+        "group": "projectbt-prisma",
         "panel": "dedicated",
         "reveal": "always",
         "focus": true,
@@ -169,13 +246,38 @@
     {
       "label": "Prisma: Studio API",
       "type": "shell",
-      "command": "npx prisma studio",
+      "command": "npx",
+      "args": [
+        "prisma",
+        "studio",
+        "--config=./prisma.config.ts"
+      ],
       "isBackground": true,
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/services/api"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
+        "group": "projectbt-prisma",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Database: Ensure Module Catalog",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "scripts/ensure-catalog.js"
+      ],
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/backendbt"
+      },
+      "presentation": {
+        "group": "projectbt-database",
         "panel": "dedicated",
         "reveal": "always",
         "focus": true,
@@ -183,14 +285,47 @@
       }
     },
     {
-      "label": "Build Customer Dashboard",
+      "label": "Database: Prepare Local Database",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Start Dev Services",
+        "Prisma: Migrate API",
+        "Database: Ensure Module Catalog"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Dev: Run Customer + Admin + API + Desktop",
+      "detail": "Starts MySQL, applies migrations, ensures the catalog, and runs the ProjectBT backend and frontend",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Database: Prepare Local Database",
+        "Dev: Run Backend + Frontend"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Build Backend",
       "type": "shell",
-      "command": "npm run build",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/apps/customer"
+        "cwd": "${workspaceFolder}/backendbt"
       },
       "presentation": {
+        "group": "projectbt-build",
         "panel": "dedicated",
         "reveal": "always",
         "focus": true,
@@ -198,14 +333,19 @@
       }
     },
     {
-      "label": "Build Admin Dashboard",
+      "label": "Build Frontend",
       "type": "shell",
-      "command": "npm run build",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/apps/admin"
+        "cwd": "${workspaceFolder}/frontendclientbt"
       },
       "presentation": {
+        "group": "projectbt-build",
         "panel": "dedicated",
         "reveal": "always",
         "focus": true,
@@ -213,18 +353,16 @@
       }
     },
     {
-      "label": "Build API",
-      "type": "shell",
-      "command": "npm run build",
+      "label": "Build: Backend + Frontend",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Build Backend",
+        "Build Frontend"
+      ],
       "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}/services/api"
-      },
       "presentation": {
-        "panel": "dedicated",
         "reveal": "always",
-        "focus": true,
-        "clear": true
+        "focus": false
       }
     }
   ]
