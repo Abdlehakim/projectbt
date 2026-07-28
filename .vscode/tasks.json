@@ -2,32 +2,230 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Open Backend Terminal",
+      "label": "Git: Commit + Push All Folders",
       "type": "shell",
-      "command": "cd backendbt && bash",
-      "isBackground": true,
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.vscode/git-commit-all.ps1"
+      ],
       "problemMatcher": [],
-      "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "presentation": {
         "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Run Customer Dashboard",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/customer"
+      },
+      "presentation": {
+        "group": "facturance-customer",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Run Admin Dashboard",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/admin"
+      },
+      "presentation": {
+        "group": "facturance-admin",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Run API",
+      "type": "shell",
+      "command": "npm run start:dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/services/api"
+      },
+      "presentation": {
+        "group": "facturance-api",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Run Desktop",
+      "type": "shell",
+      "command": "npm start",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/desktop"
+      },
+      "presentation": {
+        "group": "facturance-desktop",
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "Dev: Run Customer + Admin + API + Desktop",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Run Customer Dashboard",
+        "Run Admin Dashboard",
+        "Run API",
+        "Run Desktop"
+      ],
+      "problemMatcher": [],
+      "presentation": {
         "reveal": "always",
         "focus": false
       }
     },
     {
-      "label": "Open frontendclient Terminal",
+      "label": "Docker: Start Dev Services",
       "type": "shell",
-      "command": "cd frontendclientbt && bash",
-      "isBackground": true,
+      "command": "docker compose -f infrastructure/docker/dev/docker-compose.dev.yml up -d",
       "problemMatcher": [],
-      "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "presentation": {
         "panel": "dedicated",
         "reveal": "always",
-        "focus": false
+        "focus": true,
+        "clear": true
       }
     },
+    {
+      "label": "Docker: Stop Dev Services",
+      "type": "shell",
+      "command": "docker compose -f infrastructure/docker/dev/docker-compose.dev.yml down",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma: Migrate API",
+      "type": "shell",
+      "command": "npx prisma migrate dev",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/services/api"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma: Generate API Client",
+      "type": "shell",
+      "command": "npx prisma generate",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/services/api"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma: Studio API",
+      "type": "shell",
+      "command": "npx prisma studio",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/services/api"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Build Customer Dashboard",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/customer"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Build Admin Dashboard",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/admin"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    },
+    {
+      "label": "Build API",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/services/api"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": true
+      }
+    }
   ]
 }
