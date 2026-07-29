@@ -115,26 +115,36 @@ jobs:
               mkdir -p backups/postgresql
 
               BACKUP_FILE="backups/postgresql/projectbt_$(date +%Y%m%d_%H%M%S)_before_deploy.dump"
+              BACKUP_EXIT_CODE=0
 
-              set +e
-
-              timeout 120 \
-                docker compose exec -T db \
+              if timeout \
+                --signal=TERM \
+                --kill-after=10s \
+                120s \
+                docker exec \
+                projectbt-db-1 \
                 sh -lc 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-                > "$BACKUP_FILE"
+                > "$BACKUP_FILE" \
+                </dev/null; then
 
-              BACKUP_EXIT_CODE=$?
-
-              set -e
+                echo "Database backup command completed."
+              else
+                BACKUP_EXIT_CODE=$?
+              fi
 
               if [ "$BACKUP_EXIT_CODE" -ne 0 ]; then
                 echo "Database backup command failed with exit code: $BACKUP_EXIT_CODE"
+
+                if [ "$BACKUP_EXIT_CODE" -eq 124 ]; then
+                  echo "Database backup exceeded the 120-second timeout."
+                fi
+
                 rm -f "$BACKUP_FILE"
                 exit "$BACKUP_EXIT_CODE"
               fi
 
               if [ ! -s "$BACKUP_FILE" ]; then
-                echo "Database backup failed or the backup file is empty"
+                echo "Database backup failed or the backup file is empty."
                 rm -f "$BACKUP_FILE"
                 exit 1
               fi
@@ -143,6 +153,7 @@ jobs:
               ls -lh "$BACKUP_FILE"
 
               echo "Removing old database backups..."
+
               find backups/postgresql \
                 -maxdepth 1 \
                 -type f \
@@ -188,6 +199,7 @@ jobs:
                   --show-error \
                   http://127.0.0.1:3001/ \
                   > /dev/null; then
+
                   FRONTEND_READY=true
                   echo "Frontend is responding"
                   break
@@ -218,6 +230,8 @@ jobs:
                 exit 1
               fi
 
+              echo "Backend container is running."
+
               echo "========================================"
               echo "Removing unused Docker images"
               echo "========================================"
@@ -230,5 +244,14 @@ jobs:
 
               docker compose ps
 
+              echo
+              echo "Application container details:"
+
+              docker inspect \
+                -f '{{.Name}} | started={{.State.StartedAt}} | image={{.Image}}' \
+                projectbt-backend-1 \
+                projectbt-frontend-1
+
+              echo
               echo "Deployment completed successfully."
           EOF
