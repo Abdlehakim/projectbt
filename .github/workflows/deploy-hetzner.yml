@@ -165,30 +165,149 @@ jobs:
                 | xargs -r rm -f
 
               echo "========================================"
-              echo "Building backend image"
+              echo "Building application images"
               echo "========================================"
 
-              docker compose build backend
+              docker compose build backend frontend
+
+              EXPECTED_BACKEND_IMAGE="$(
+                docker image inspect \
+                  projectbt-backend:latest \
+                  -f '{{.Id}}'
+              )"
+
+              EXPECTED_FRONTEND_IMAGE="$(
+                docker image inspect \
+                  projectbt-frontend:latest \
+                  -f '{{.Id}}'
+              )"
+
+              echo "Built backend image:"
+              echo "$EXPECTED_BACKEND_IMAGE"
+
+              echo "Built frontend image:"
+              echo "$EXPECTED_FRONTEND_IMAGE"
+
+              if [ -z "$EXPECTED_BACKEND_IMAGE" ]; then
+                echo "Backend image ID could not be determined."
+                exit 1
+              fi
+
+              if [ -z "$EXPECTED_FRONTEND_IMAGE" ]; then
+                echo "Frontend image ID could not be determined."
+                exit 1
+              fi
 
               echo "========================================"
               echo "Applying Prisma migrations"
               echo "========================================"
 
-              docker compose run --rm backend npx prisma migrate deploy
-
-              echo "========================================"
-              echo "Building frontend image"
-              echo "========================================"
-
-              docker compose build frontend
+              docker compose run \
+                --rm \
+                --no-deps \
+                backend \
+                npx prisma migrate deploy
 
               echo "========================================"
               echo "Recreating application containers"
               echo "========================================"
 
-              docker compose up -d --force-recreate backend frontend
+              docker compose up \
+                -d \
+                --force-recreate \
+                --no-build \
+                backend frontend
 
-              echo "Waiting for frontend..."
+              echo "========================================"
+              echo "Verifying deployed image IDs"
+              echo "========================================"
+
+              RUNNING_BACKEND_IMAGE="$(
+                docker inspect \
+                  -f '{{.Image}}' \
+                  projectbt-backend-1 \
+                  2>/dev/null || true
+              )"
+
+              RUNNING_FRONTEND_IMAGE="$(
+                docker inspect \
+                  -f '{{.Image}}' \
+                  projectbt-frontend-1 \
+                  2>/dev/null || true
+              )"
+
+              echo "Backend running image:"
+              echo "$RUNNING_BACKEND_IMAGE"
+
+              echo "Backend expected image:"
+              echo "$EXPECTED_BACKEND_IMAGE"
+
+              echo "Frontend running image:"
+              echo "$RUNNING_FRONTEND_IMAGE"
+
+              echo "Frontend expected image:"
+              echo "$EXPECTED_FRONTEND_IMAGE"
+
+              if [ "$RUNNING_BACKEND_IMAGE" != "$EXPECTED_BACKEND_IMAGE" ]; then
+                echo "Backend container is using the wrong image."
+                exit 1
+              fi
+
+              if [ "$RUNNING_FRONTEND_IMAGE" != "$EXPECTED_FRONTEND_IMAGE" ]; then
+                echo "Frontend container is using the wrong image."
+                exit 1
+              fi
+
+              echo "Backend and frontend are using the latest built images."
+
+              echo "========================================"
+              echo "Waiting for backend"
+              echo "========================================"
+
+              BACKEND_READY=false
+
+              for i in $(seq 1 30); do
+                BACKEND_RUNNING="$(
+                  docker inspect \
+                    -f '{{.State.Running}}' \
+                    projectbt-backend-1 \
+                    2>/dev/null || true
+                )"
+
+                if [ "$BACKEND_RUNNING" = "true" ]; then
+                  BACKEND_READY=true
+                  echo "Backend container is running"
+                  break
+                fi
+
+                echo "Waiting for backend... attempt=$i"
+                sleep 2
+              done
+
+              if [ "$BACKEND_READY" != "true" ]; then
+                echo "Backend container did not become available"
+                docker compose logs backend --tail=120
+                exit 1
+              fi
+
+              sleep 3
+
+              BACKEND_RUNNING="$(
+                docker inspect \
+                  -f '{{.State.Running}}' \
+                  projectbt-backend-1 \
+                  2>/dev/null || true
+              )"
+
+              if [ "$BACKEND_RUNNING" != "true" ]; then
+                echo "Backend container stopped after startup"
+                docker compose logs backend --tail=120
+                exit 1
+              fi
+
+              echo "========================================"
+              echo "Waiting for frontend"
+              echo "========================================"
 
               FRONTEND_READY=false
 
@@ -215,22 +334,35 @@ jobs:
                 exit 1
               fi
 
-              echo "Checking backend container..."
+              echo "========================================"
+              echo "Final container verification"
+              echo "========================================"
 
-              BACKEND_RUNNING="$(
+              RUNNING_BACKEND_IMAGE="$(
                 docker inspect \
-                  -f '{{.State.Running}}' \
-                  projectbt-backend-1 \
-                  2>/dev/null || true
+                  -f '{{.Image}}' \
+                  projectbt-backend-1
               )"
 
-              if [ "$BACKEND_RUNNING" != "true" ]; then
-                echo "Backend container is not running"
-                docker compose logs backend --tail=120
+              RUNNING_FRONTEND_IMAGE="$(
+                docker inspect \
+                  -f '{{.Image}}' \
+                  projectbt-frontend-1
+              )"
+
+              if [ "$RUNNING_BACKEND_IMAGE" != "$EXPECTED_BACKEND_IMAGE" ]; then
+                echo "Backend image changed during deployment."
+                echo "Running:  $RUNNING_BACKEND_IMAGE"
+                echo "Expected: $EXPECTED_BACKEND_IMAGE"
                 exit 1
               fi
 
-              echo "Backend container is running."
+              if [ "$RUNNING_FRONTEND_IMAGE" != "$EXPECTED_FRONTEND_IMAGE" ]; then
+                echo "Frontend image changed during deployment."
+                echo "Running:  $RUNNING_FRONTEND_IMAGE"
+                echo "Expected: $EXPECTED_FRONTEND_IMAGE"
+                exit 1
+              fi
 
               echo "========================================"
               echo "Removing unused Docker images"
@@ -248,9 +380,20 @@ jobs:
               echo "Application container details:"
 
               docker inspect \
-                -f '{{.Name}} | started={{.State.StartedAt}} | image={{.Image}}' \
+                -f '{{.Name}} | started={{.State.StartedAt}} | running={{.State.Running}} | image={{.Image}}' \
                 projectbt-backend-1 \
                 projectbt-frontend-1
+
+              echo
+              echo "Application image details:"
+
+              docker image inspect \
+                projectbt-backend:latest \
+                -f 'backend | created={{.Created}} | id={{.Id}}'
+
+              docker image inspect \
+                projectbt-frontend:latest \
+                -f 'frontend | created={{.Created}} | id={{.Id}}'
 
               echo
               echo "Deployment completed successfully."
