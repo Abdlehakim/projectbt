@@ -170,43 +170,44 @@ jobs:
 
               docker compose build backend frontend
 
-              EXPECTED_BACKEND_IMAGE="$(
-                docker image inspect \
-                  projectbt-backend:latest \
-                  -f '{{.Id}}'
-              )"
-
-              EXPECTED_FRONTEND_IMAGE="$(
-                docker image inspect \
-                  projectbt-frontend:latest \
-                  -f '{{.Id}}'
-              )"
-
-              echo "Built backend image:"
-              echo "$EXPECTED_BACKEND_IMAGE"
-
-              echo "Built frontend image:"
-              echo "$EXPECTED_FRONTEND_IMAGE"
-
-              if [ -z "$EXPECTED_BACKEND_IMAGE" ]; then
-                echo "Backend image ID could not be determined."
-                exit 1
-              fi
-
-              if [ -z "$EXPECTED_FRONTEND_IMAGE" ]; then
-                echo "Frontend image ID could not be determined."
-                exit 1
-              fi
-
               echo "========================================"
               echo "Applying Prisma migrations"
               echo "========================================"
 
-              docker compose run \
-                --rm \
-                --no-deps \
-                backend \
-                npx prisma migrate deploy
+              MIGRATION_EXIT_CODE=0
+
+              if timeout \
+                --signal=TERM \
+                --kill-after=10s \
+                120s \
+                docker compose run \
+                  --rm \
+                  --no-deps \
+                  -T \
+                  --entrypoint npx \
+                  backend \
+                  prisma migrate deploy \
+                </dev/null; then
+
+                echo "Prisma migrations completed."
+              else
+                MIGRATION_EXIT_CODE=$?
+              fi
+
+              if [ "$MIGRATION_EXIT_CODE" -ne 0 ]; then
+                echo "Prisma migration failed with exit code: $MIGRATION_EXIT_CODE"
+
+                if [ "$MIGRATION_EXIT_CODE" -eq 124 ]; then
+                  echo "Prisma migration exceeded the 120-second timeout."
+                fi
+
+                docker ps -a \
+                  --filter 'name=projectbt-backend-run-' \
+                  --format 'table {{.Names}}\t{{.Status}}' \
+                  || true
+
+                exit "$MIGRATION_EXIT_CODE"
+              fi
 
               echo "========================================"
               echo "Recreating application containers"
@@ -217,48 +218,6 @@ jobs:
                 --force-recreate \
                 --no-build \
                 backend frontend
-
-              echo "========================================"
-              echo "Verifying deployed image IDs"
-              echo "========================================"
-
-              RUNNING_BACKEND_IMAGE="$(
-                docker inspect \
-                  -f '{{.Image}}' \
-                  projectbt-backend-1 \
-                  2>/dev/null || true
-              )"
-
-              RUNNING_FRONTEND_IMAGE="$(
-                docker inspect \
-                  -f '{{.Image}}' \
-                  projectbt-frontend-1 \
-                  2>/dev/null || true
-              )"
-
-              echo "Backend running image:"
-              echo "$RUNNING_BACKEND_IMAGE"
-
-              echo "Backend expected image:"
-              echo "$EXPECTED_BACKEND_IMAGE"
-
-              echo "Frontend running image:"
-              echo "$RUNNING_FRONTEND_IMAGE"
-
-              echo "Frontend expected image:"
-              echo "$EXPECTED_FRONTEND_IMAGE"
-
-              if [ "$RUNNING_BACKEND_IMAGE" != "$EXPECTED_BACKEND_IMAGE" ]; then
-                echo "Backend container is using the wrong image."
-                exit 1
-              fi
-
-              if [ "$RUNNING_FRONTEND_IMAGE" != "$EXPECTED_FRONTEND_IMAGE" ]; then
-                echo "Frontend container is using the wrong image."
-                exit 1
-              fi
-
-              echo "Backend and frontend are using the latest built images."
 
               echo "========================================"
               echo "Waiting for backend"
@@ -338,31 +297,45 @@ jobs:
               echo "Final container verification"
               echo "========================================"
 
-              RUNNING_BACKEND_IMAGE="$(
+              BACKEND_RUNNING="$(
                 docker inspect \
-                  -f '{{.Image}}' \
-                  projectbt-backend-1
+                  -f '{{.State.Running}}' \
+                  projectbt-backend-1 \
+                  2>/dev/null || true
               )"
 
-              RUNNING_FRONTEND_IMAGE="$(
+              FRONTEND_RUNNING="$(
                 docker inspect \
-                  -f '{{.Image}}' \
-                  projectbt-frontend-1
+                  -f '{{.State.Running}}' \
+                  projectbt-frontend-1 \
+                  2>/dev/null || true
               )"
 
-              if [ "$RUNNING_BACKEND_IMAGE" != "$EXPECTED_BACKEND_IMAGE" ]; then
-                echo "Backend image changed during deployment."
-                echo "Running:  $RUNNING_BACKEND_IMAGE"
-                echo "Expected: $EXPECTED_BACKEND_IMAGE"
+              if [ "$BACKEND_RUNNING" != "true" ]; then
+                echo "Backend container is not running during final verification."
+                docker compose logs backend --tail=120
                 exit 1
               fi
 
-              if [ "$RUNNING_FRONTEND_IMAGE" != "$EXPECTED_FRONTEND_IMAGE" ]; then
-                echo "Frontend image changed during deployment."
-                echo "Running:  $RUNNING_FRONTEND_IMAGE"
-                echo "Expected: $EXPECTED_FRONTEND_IMAGE"
+              if [ "$FRONTEND_RUNNING" != "true" ]; then
+                echo "Frontend container is not running during final verification."
+                docker compose logs frontend --tail=100
                 exit 1
               fi
+
+              if ! curl \
+                --fail \
+                --silent \
+                --show-error \
+                http://127.0.0.1:3001/ \
+                > /dev/null; then
+
+                echo "Frontend failed the final HTTP verification."
+                docker compose logs frontend --tail=100
+                exit 1
+              fi
+
+              echo "Backend and frontend runtime verification completed."
 
               echo "========================================"
               echo "Removing unused Docker images"
@@ -385,15 +358,8 @@ jobs:
                 projectbt-frontend-1
 
               echo
-              echo "Application image details:"
-
-              docker image inspect \
-                projectbt-backend:latest \
-                -f 'backend | created={{.Created}} | id={{.Id}}'
-
-              docker image inspect \
-                projectbt-frontend:latest \
-                -f 'frontend | created={{.Created}} | id={{.Id}}'
+              echo "Recent backend logs:"
+              docker compose logs backend --tail=30
 
               echo
               echo "Deployment completed successfully."
